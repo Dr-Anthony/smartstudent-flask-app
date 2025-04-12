@@ -1,8 +1,6 @@
-pip install flask flask-cors
-pip freeze > requirements.txt
-# 
-from Backend.index import app
-# This allows gunicorn/uwsgi to find your app
-cd your_project
-export FLASK_APP=Backend/index.py
-flask run
+Flask
+flask-cors
+pyttsx3
+SpeechRecognition
+pyaudio
+
