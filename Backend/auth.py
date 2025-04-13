@@ -1,5 +1,3 @@
-# ✅ BACKEND FILES
-# ------------------
 # 1. auth.py
 # (Handles admin & user authentication routes)
 
