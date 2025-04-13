@@ -1,50 +1,43 @@
+# ✅ BACKEND FILES
+# ------------------
+# 1. auth.py
+# (Handles admin & user authentication routes)
+
+from flask import Blueprint, request, jsonify
 import json
 import os
 
-STUDENT_FILE = os.path.join('Data', 'students.json')
-ADMIN_FILE = os.path.join('Data', 'admins.json')
-COUNTER_FILE = os.path.join('Data', 'counters.json')
+auth_bp = Blueprint('auth', __name__)
 
-def load_json(file_path, default):
-    if not os.path.exists(file_path):
-        return default
-    with open(file_path, 'r') as f:
-        return json.load(f)
+ADMIN_FILE = os.path.join("Data", "admins.json")
+STUDENT_FILE = os.path.join("Data", "students.json")
 
-def save_json(file_path, data):
-    with open(file_path, 'w') as f:
-        json.dump(data, f, indent=4)
+@auth_bp.route("/api/login", methods=["POST"])
+def login():
+    data = request.json
+    role = data.get("role")
+    user_id = data.get("staffId") or data.get("matric")
+    password = data.get("password")
 
-def generate_matric_number(department, year):
-    counters = load_json(COUNTER_FILE, {})
-    key = f"{department}_{year}"
-    count = counters.get(key, 0) + 1
-    counters[key] = count
-    save_json(COUNTER_FILE, counters)
+    if not role or not user_id or not password:
+        return jsonify({"error": "Missing credentials"}), 400
 
-    dept_code = department[:3].upper()
-    year_suffix = year[-2:]
-    serial = str(count).zfill(4)
-    return f"AOC/{dept_code}/{year_suffix}/{serial}"
+    if role == "admin":
+        if not os.path.exists(ADMIN_FILE):
+            return jsonify({"error": "Admin data not found"}), 404
+        with open(ADMIN_FILE, 'r') as f:
+            admins = json.load(f)
+        user = next((a for a in admins if a["staffId"] == user_id and a["password"] == password), None)
+    elif role == "student":
+        if not os.path.exists(STUDENT_FILE):
+            return jsonify({"error": "Student data not found"}), 404
+        with open(STUDENT_FILE, 'r') as f:
+            students = json.load(f)
+        user = next((s for s in students if s["matric"] == user_id and s["password"] == password), None)
+    else:
+        return jsonify({"error": "Invalid role specified"}), 400
 
-def generate_staff_id():
-    counters = load_json(COUNTER_FILE, {})
-    count = counters.get("staff", 0) + 1
-    counters["staff"] = count
-    save_json(COUNTER_FILE, counters)
-
-    return f"ADM{str(count).zfill(4)}"
-
-def verify_student_login(matric, password):
-    students = load_json(STUDENT_FILE, [])
-    for student in students:
-        if student.get("matric") == matric and student.get("password") == password:
-            return student
-    return None
-
-def verify_admin_login(email, password):
-    admins = load_json(ADMIN_FILE, [])
-    for admin in admins:
-        if admin.get("email") == email and admin.get("password") == password:
-            return admin
-    return None
+    if user:
+        return jsonify(user), 200
+    else:
+        return jsonify({"error": "Invalid credentials"}), 401
